@@ -1,5 +1,5 @@
 % Impedance Analyzer Class Delcaration
-classdef ImpedanceAnalyzer 
+classdef ImpedanceAnalyzer < handle
    properties
    %Need property for each setting that can be changed
     visaObj;
@@ -99,29 +99,39 @@ classdef ImpedanceAnalyzer
        end
     end
     
-    function obj = setTrace1(obj,type)
-%         switch(nargin)
-%             case 1
-%                 obj.setTrace(1,1,varargin{1});
-%             case 2 
-%                 if varargin{2}>=1 && varargin{2}>=1<=4 && isinteger(varargin{2})
-%                     obj.setTrace(1,varargin{2},varargin{1});
-%                 else
-%                     error('Invalid Channel');
-%                 end
-%             otherwise
-%                 error('Invalid Number of Arguments');
-%         end
-        
-        while (~strcmp(query(obj.visaObj,':CALC1:PAR1:DEF?'),sprintf('%s\n',type)))
-            switch type
-                case {'Z','Y','R','X','G','B','LS','LP','CS','CP','RS','RP','Q','D','TZ','TY','VAC','IAC','VDC','IDC','IMP','ADM'}
-                    fprintf(obj.visaObj,[':CALC1:PAR1:DEF ' type]);
-                otherwise
-                    disp('Invalid Trace Type. Please Try Again');
-                    return;
-            end
+    function obj = setTrace1(obj,type,varargin)
+        switch(length(varargin))
+            case 0
+                obj.setTrace(1,1,type);
+            case 1 
+                if varargin{1}>=1 % && varargin{1}<=4 && isinteger(varargin{1})
+                     if varargin{1}<=4   
+                        if mod(varargin{1},1)==0
+                            obj.setTrace(varargin{1},1,type);
+                        else
+                            error('Not int');
+                        end
+                     else
+                         error('Not < 4');
+                     end
+                         
+                else
+                    %error('Invalid Channel');
+                    error('Not >1');
+                end
+            otherwise
+                error('Invalid Number of Arguments');
         end
+        
+%         while (~strcmp(query(obj.visaObj,':CALC1:PAR1:DEF?'),sprintf('%s\n',type)))
+%             switch type
+%                 case {'Z','Y','R','X','G','B','LS','LP','CS','CP','RS','RP','Q','D','TZ','TY','VAC','IAC','VDC','IDC','IMP','ADM'}
+%                     fprintf(obj.visaObj,[':CALC1:PAR1:DEF ' type]);
+%                 otherwise
+%                     disp('Invalid Trace Type. Please Try Again');
+%                     return;
+%             end
+%         end
     end
     function obj = setTrace2(obj,type)
 %        switch(nargin)
@@ -178,7 +188,7 @@ classdef ImpedanceAnalyzer
         while (~strcmp(query(obj.visaObj,sprintf(':CALC%d:PAR%d:DEF?',chan,trace)), sprintf('%s\n',type)))
             switch type
                 case {'Z','Y','R','X','G','B','LS','LP','CS','CP','RS','RP','Q','D','TZ','TY','VAC','IAC','VDC','IDC','IMP','ADM'}
-                    fprintf(obj.visaObj,[sprintf(':CALC%d:PAR%d:DEF?',chan,trace) type]);
+                    fprintf(obj.visaObj,[sprintf(':CALC%d:PAR%d:DEF ',chan,trace) type]);
                 otherwise
                     disp('Invalid Trace Type. Please Try Again');
                     return;
@@ -273,7 +283,7 @@ classdef ImpedanceAnalyzer
         end
     end
     function obj = triggerSweep(obj)
-        fprintf(obj.visaObj,':TRIG:SING');
+        fprintf(obj.visaObj,'*TRG');
         %obj.waitForComplete();
         %obj.sound();
         
@@ -389,5 +399,10 @@ classdef ImpedanceAnalyzer
     function obj = close(obj)
         fclose(obj.visaObj);
     end
+    function delete(obj)
+            disp('Closed');
+            obj.close();
+    end
+    
    end
 end
