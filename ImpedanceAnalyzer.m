@@ -1,15 +1,15 @@
 % Impedance Analyzer Class Delcaration
 classdef ImpedanceAnalyzer < handle
-   properties
-   %Need property for each setting that can be changed
-    visaObj;
-   end
-   methods
+    properties
+        visaObj;
+    end
+    methods
    %Need Constructor that Sets up connection given a VISA address (Try to
    %open connection. If no connection available, propmt for address again
-    function obj = ImpedanceAnalyzer(varargin)
+        function obj = ImpedanceAnalyzer(varargin)
             switch nargin 
                 case 0
+                    %Case for Testing without setting up impednace analyzer
                     obj.visaObj = 1;
                 case 1
                     try
@@ -24,24 +24,28 @@ classdef ImpedanceAnalyzer < handle
                 otherwise
                     error('Unexpected Number of Inputs')
             end
-    end
-    
-    function obj = setVisa(obj,visaObject)
-        obj.visaObj = visaObject;
-    end
+        end
+        function obj = setVisa(obj,visaObject)
+            obj.visaObj = visaObject;
+        end
     
     %*********** Functions to Set Impedance Analyzer Settings ******** %
     
     function obj = setOSCMode(obj,type)
-        while (~strcmp(query(obj.visaObj,':SOUR1:MODE?'),sprintf('%s\n',type)))
-            switch type
-                case {'VOLT','CURR'}
-                    fprintf(obj.visaObj,[':SOUR1:MODE ' type]);
-                otherwise
-                    disp('Invalid OSC Mode. Please Try Again');
-                    return;
+        for i=1:3 %% Added loop to try a Max of 3 times
+            if (~strcmp(query(obj.visaObj,':SOUR1:MODE?'),sprintf('%s\n',type)))%changes while to if 
+                switch type
+                    case {'VOLT','CURR'}
+                        fprintf(obj.visaObj,[':SOUR1:MODE ' type]);
+                    otherwise
+                        disp('Invalid OSC Mode. Please Try Again');
+                        return;
+                end
+            else
+                disp('Could not set Parameter');
+                return;
             end
-       end
+        end
     end
     function obj = setOSCCurrent(obj, value)
         if ~strcmp(query(obj.visaObj,':SOUR1:MODE?'),sprintf('%s\n','CURR'))
@@ -53,13 +57,18 @@ classdef ImpedanceAnalyzer < handle
                     return
             end
         end
-        while (str2num(query(obj.visaObj,':SOUR1:CURR?'))~= value)
-            if (rem(value,0.00002)==0 && value>=200e-6 && value<=20e-3) 
-                fprintf(obj.visaObj,[':SOUR1:CURR ' num2str(value)]);
+        for i=1:3 %% Added loop to try a Max of 3 times
+            if (str2num(query(obj.visaObj,':SOUR1:CURR?'))~= value)
+                if (rem(value,0.00002)==0 && value>=200e-6 && value<=20e-3) 
+                    fprintf(obj.visaObj,[':SOUR1:CURR ' num2str(value)]);
+                else
+                    disp('Invalid Trace Type. Please Try Again');
+                    return;
+                end
             else
-                disp('Invalid Trace Type. Please Try Again');
+                disp('Could not set Parameter');
                 return;
-            end
+            end    
         end
     end
     function obj = setOSCVoltage(obj, value)
@@ -72,14 +81,19 @@ classdef ImpedanceAnalyzer < handle
                     return
             end
         end
-        while (str2num(query(obj.visaObj,':SOUR1:VOLT?'))~= value)
-            if (rem(value,0.001)==0 && value>=0.005 && value<=1) 
-                fprintf(obj.visaObj,[':SOUR1:VOLT ' num2str(value)]);
+        for i=1:3
+            if (str2num(query(obj.visaObj,':SOUR1:VOLT?'))~= value)
+                if (rem(value,0.001)==0 && value>=0.005 && value<=1) 
+                    fprintf(obj.visaObj,[':SOUR1:VOLT ' num2str(value)]);
+                else
+                    disp('Invalid Trace Type. Please Try Again');
+                    return;
+                end
             else
-                disp('Invalid Trace Type. Please Try Again');
+                disp('Could not set Parameter');
                 return;
             end
-        end    
+        end
     end
     
     function obj = setAdapter(obj,type)
@@ -88,13 +102,18 @@ classdef ImpedanceAnalyzer < handle
     % str is a string containing on of the following values:
     % 'NONE','E4M1','E4M2','E4A7','E4AE7','E4PR','E4PE'
     % 
-       while (~strcmp(query(obj.visaObj,':SENS:ADAP:TYPE?'),sprintf('%s\n',type)))
-            switch type
-                case {'NONE','E4M1','E4M2','E4A7','E4AE7','E4PR','E4PE'}
-                    fprintf(obj.visaObj,[':SENS:ADAP:TYPE ' type]);
-                otherwise
-                    disp('Invalid Adaptor Type. Please Try Again');
-                    return;
+       for i=1:3
+            if (~strcmp(query(obj.visaObj,':SENS:ADAP:TYPE?'),sprintf('%s\n',type)))
+                switch type
+                    case {'NONE','E4M1','E4M2','E4A7','E4AE7','E4PR','E4PE'}
+                        fprintf(obj.visaObj,[':SENS:ADAP:TYPE ' type]);
+                    otherwise
+                        disp('Invalid Adaptor Type. Please Try Again');
+                        return;
+                end
+            else
+                disp('Could not set Parameter');
+                return;
             end
        end
     end
@@ -104,65 +123,8 @@ classdef ImpedanceAnalyzer < handle
             case 0
                 obj.setTrace(1,1,type);
             case 1 
-                if varargin{1}>=1 % && varargin{1}<=4 && isinteger(varargin{1})
-                     if varargin{1}<=4   
-                        if mod(varargin{1},1)==0
-                            obj.setTrace(varargin{1},1,type);
-                        else
-                            error('Not int');
-                        end
-                     else
-                         error('Not < 4');
-                     end
-                         
-                else
-                    %error('Invalid Channel');
-                    error('Not >1');
-                end
-            otherwise
-                error('Invalid Number of Arguments');
-        end
-        
-%         while (~strcmp(query(obj.visaObj,':CALC1:PAR1:DEF?'),sprintf('%s\n',type)))
-%             switch type
-%                 case {'Z','Y','R','X','G','B','LS','LP','CS','CP','RS','RP','Q','D','TZ','TY','VAC','IAC','VDC','IDC','IMP','ADM'}
-%                     fprintf(obj.visaObj,[':CALC1:PAR1:DEF ' type]);
-%                 otherwise
-%                     disp('Invalid Trace Type. Please Try Again');
-%                     return;
-%             end
-%         end
-    end
-    function obj = setTrace2(obj,type)
-%        switch(nargin)
-%             case 1
-%                 obj.setTrace(1,2,varargin{1});
-%             case 2 
-%                 if varargin{2}>=1 && varargin{2}>=1<=4 && isinteger(varargin{2})
-%                     obj.setTrace(1,varargin{2},varargin{1});
-%                 else
-%                     error('Invalid Channel');
-%                 end
-%             otherwise
-%                 error('Invalid Number of Arguments');
-%         end
-        while (~strcmp(query(obj.visaObj,':CALC1:PAR2:DEF?'), sprintf('%s\n',type)))
-            switch type
-                case {'Z','Y','R','X','G','B','LS','LP','CS','CP','RS','RP','Q','D','TZ','TY','VAC','IAC','VDC','IDC','IMP','ADM'}
-                    fprintf(obj.visaObj,[':CALC1:PAR2:DEF ' type]);
-                otherwise
-                    disp('Invalid Trace Type. Please Try Again');
-                    return;
-            end
-        end
-    end
-    function obj = setTrace3(obj,varargin)
-       switch(nargin)
-            case 1
-                obj.setTrace(1,3,varargin{1});
-            case 2 
-                if varargin{2}>=1 && varargin{2}>=1<=4 && isinteger(varargin{2})
-                    obj.setTrace(1,varargin{2},varargin{1});
+                if (varargin{1}>=1 && varargin{1}<=4 && mod(varargin{1},1)==0)
+                    obj.setTrace(varargin{1},1,type);
                 else
                     error('Invalid Channel');
                 end
@@ -170,13 +132,13 @@ classdef ImpedanceAnalyzer < handle
                 error('Invalid Number of Arguments');
         end
     end
-    function obj = setTrace4(obj,varargin)
-        switch(nargin)
-            case 1
-                obj.setTrace(1,1,varargin{1});
-            case 2 
-                if varargin{2}>=1 && varargin{2}>=1<=4 && isinteger(varargin{2})
-                    obj.setTrace(1,varargin{2},varargin{1});
+    function obj = setTrace2(obj,type,varargin)
+        switch(length(varargin))
+            case 0
+                obj.setTrace(1,2,type);
+            case 1 
+                if (varargin{1}>=1 && varargin{1}<=4 && mod(varargin{1},1)==0)
+                    obj.setTrace(varargin{1},2,type);
                 else
                     error('Invalid Channel');
                 end
@@ -184,6 +146,35 @@ classdef ImpedanceAnalyzer < handle
                 error('Invalid Number of Arguments');
         end
     end
+    function obj = setTrace3(obj,type,varargin)
+        switch(length(varargin))
+            case 0
+                obj.setTrace(1,3,type);
+            case 1 
+                if (varargin{1}>=1 && varargin{1}<=4 && mod(varargin{1},1)==0)
+                    obj.setTrace(varargin{1},3,type);
+                else
+                    error('Invalid Channel');
+                end
+            otherwise
+                error('Invalid Number of Arguments');
+        end
+    end
+    function obj = setTrace4(obj,type,varargin)
+        switch(length(varargin))
+            case 0
+                obj.setTrace(1,4,type);
+            case 1 
+                if (varargin{1}>=1 && varargin{1}<=4 && mod(varargin{1},1)==0)
+                    obj.setTrace(varargin{1},4,type);
+                else
+                    error('Invalid Channel');
+                end
+            otherwise
+                error('Invalid Number of Arguments');
+        end
+    end
+    
     function obj = setTrace(obj,chan,trace,type)
         while (~strcmp(query(obj.visaObj,sprintf(':CALC%d:PAR%d:DEF?',chan,trace)), sprintf('%s\n',type)))
             switch type
@@ -197,96 +188,133 @@ classdef ImpedanceAnalyzer < handle
     end
     
     function obj = setAccuracy(obj,type)
-        while (str2num(query(obj.visaObj,':SENS1:APER?'))~=type)
-            switch type
-                case {1,2,3,4,5}
-                    fprintf(obj.visaObj,[':SENS1:APER ' num2str(type)]);
-                otherwise
-                    disp('Invalid Trace Type. Please Try Again');
-                    return;
+        for i=1:3
+            if (str2num(query(obj.visaObj,':SENS1:APER?'))~=type)
+                switch type
+                    case {1,2,3,4,5}
+                        fprintf(obj.visaObj,[':SENS1:APER ' num2str(type)]);
+                    otherwise
+                        disp('Invalid Trace Type. Please Try Again');
+                        return;
+                end
+            else
+                disp('Could not set Parameter');
+                return;
             end
         end
     end
     function obj = setSweepType(obj,type)
-        while (~strcmp(query(obj.visaObj,':SENS1:SWE:TYPE?'), sprintf('%s\n',type)))
-            switch type
-                case {'LIN','LOG'}
-                    fprintf(obj.visaObj,[':SENS1:SWE:TYPE ' type]);
-                otherwise
-                    disp('Invalid Trace Type. Please Try Again');
-                    return;
+        for i=1:3
+            if (~strcmp(query(obj.visaObj,':SENS1:SWE:TYPE?'), sprintf('%s\n',type)))
+                switch type
+                    case {'LIN','LOG'}
+                        fprintf(obj.visaObj,[':SENS1:SWE:TYPE ' type]);
+                    otherwise
+                        disp('Invalid Trace Type. Please Try Again');
+                        return;
+                end
+            else
+                disp('Could not set Parameter');
+                return;
             end
         end
     end
     
     function obj = setStartFrequency(obj,type)
-        while (str2num(query(obj.visaObj,':SENS1:FREQ:STAR?'))~= type)
-            if (rem(type,1)==0 && type>=20 && type<=120000000) 
-                fprintf(obj.visaObj,[':SENS1:FREQ:STAR ' num2str(type)]);
+        for i=1:3
+            if (str2num(query(obj.visaObj,':SENS1:FREQ:STAR?'))~= type)
+                if (rem(type,1)==0 && type>=20 && type<=120000000) 
+                    fprintf(obj.visaObj,[':SENS1:FREQ:STAR ' num2str(type)]);
+                else
+                    disp('Invalid Trace Type. Please Try Again');
+                    return;
+                end
             else
-                disp('Invalid Trace Type. Please Try Again');
+                disp('Could not set Parameter');
                 return;
             end
         end
     end
     function obj = setStopFrequency(obj,type)
-        while (str2num(query(obj.visaObj,':SENS1:FREQ:STOP?'))~= type)
-            if (rem(type,1)==0 && type>=20 && type<=120000000) 
-                fprintf(obj.visaObj,[':SENS1:FREQ:STOP ' num2str(type)]);
+        for i=1:3
+            if (str2num(query(obj.visaObj,':SENS1:FREQ:STOP?'))~= type)
+                if (rem(type,1)==0 && type>=20 && type<=120000000) 
+                    fprintf(obj.visaObj,[':SENS1:FREQ:STOP ' num2str(type)]);
+                else
+                    disp('Invalid Trace Type. Please Try Again');
+                    return;
+                end
             else
-                disp('Invalid Trace Type. Please Try Again');
+                disp('Could not set Parameter');
                 return;
             end
         end
     end
     function obj = setNumberOfPoints(obj,type)
-        while (str2num(query(obj.visaObj,':SENS1:SWE:POIN?'))~=type)
-            if (rem(type,1)==0 && type>=2 && type<=1601) 
-                fprintf(obj.visaObj,['SENS1:SWE:POIN ' num2str(type)]);
+        for i=1:3
+            if(str2num(query(obj.visaObj,':SENS1:SWE:POIN?'))~=type)
+                if (rem(type,1)==0 && type>=2 && type<=1601) 
+                    fprintf(obj.visaObj,['SENS1:SWE:POIN ' num2str(type)]);
+                else
+                    disp('Invalid Trace Type. Please Try Again');
+                    return;
+                end
             else
-                disp('Invalid Trace Type. Please Try Again');
+                disp('Could not set Parameter');
                 return;
             end
         end
     end
     function obj = setFixtureType(obj,type)
-        while (~strcmp(query(obj.visaObj,':SENS1:FIXT:SEL?'), sprintf('%s\n',type)))
-            switch type
-                case {'ARB','FIXT16089'}
-                    fprintf(obj.visaObj,[':SENS1:FIXT:SEL ' type]);
-                otherwise
-                    disp('Invalid Trace Type. Please Try Again');
-                    return;
+        for i=1:3
+            if (~strcmp(query(obj.visaObj,':SENS1:FIXT:SEL?'), sprintf('%s\n',type)))
+                switch type
+                    case {'ARB','FIXT16089'}
+                        fprintf(obj.visaObj,[':SENS1:FIXT:SEL ' type]);
+                    otherwise
+                        disp('Invalid Trace Type. Please Try Again');
+                        return;
+                end
+            else
+                disp('Could not set Parameter');
+                return;
             end
         end
     end
     function obj = setCompensationPoint(obj,type)
-        while (~strcmp(query(obj.visaObj,':SENS1:CORR:COLL:FPO?'),sprintf('%s\n',type)))
-            switch type
-                case {'FIX','USER'}
-                    fprintf(obj.visaObj,[':SENS1:CORR:COLL:FPO ' type]);
-                otherwise
-                    disp('Invalid Trace Type. Please Try Again');
-                    return;
+        for i = 1:3
+            if (~strcmp(query(obj.visaObj,':SENS1:CORR:COLL:FPO?'),sprintf('%s\n',type)))
+                switch type
+                    case {'FIX','USER'}
+                        fprintf(obj.visaObj,[':SENS1:CORR:COLL:FPO ' type]);
+                    otherwise
+                        disp('Invalid Trace Type. Please Try Again');
+                        return;
+                end
+            else
+                disp('Could not set Parameter');
+                return;
             end
         end
     end
     function obj = setTriggerSource(obj,type)
-        while (~strcmp(query(obj.visaObj,':TRIG:SOUR?'),sprintf('%s\n',type)))
-            switch type
-                case {'INT','EXT','MAN','BUS'}
-                    fprintf(obj.visaObj,[':TRIG:SOUR ' type]);
-                otherwise
-                    disp('Invalid Trace Type. Please Try Again');
-                    return;
+        for i = 1:3
+            if (~strcmp(query(obj.visaObj,':TRIG:SOUR?'),sprintf('%s\n',type)))
+                switch type
+                    case {'INT','EXT','MAN','BUS'}
+                        fprintf(obj.visaObj,[':TRIG:SOUR ' type]);
+                    otherwise
+                        disp('Invalid Trace Type. Please Try Again');
+                        return;
+                end
+            else
+                disp('Could not set Parameter');
+                return;
             end
         end
     end
     function obj = triggerSweep(obj)
         fprintf(obj.visaObj,'*TRG');
-        %obj.waitForComplete();
-        %obj.sound();
-        
     end
     function obj = abortSweep(obj)
         fprintf(obj.visaObj,':ABOR');
@@ -334,6 +362,15 @@ classdef ImpedanceAnalyzer < handle
         obj.sound();
     end
    
+    
+%     function data = getData(obj,type,chan)
+%         obj.waitForComplete();
+%         for i=1:4
+%             if strcmp(query(obj.visaObj,sprintf(':CALC1:PAR1:DEF?')), sprintf('R\n'))
+%                 fprintf(obj.visaObj,sprintf(':CALC1:PAR1:SEL'));
+%             end
+%         end
+%     end
     %Get Data 2 formats('rx' or 'zt') returns [r,x] or [z,t]
     function data = getR(obj)
         obj.waitForComplete();
