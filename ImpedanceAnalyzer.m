@@ -144,10 +144,12 @@ methods
         inc = 1;
         obj.setNumParameter(command,value,min,max,inc);
     end
-    function setAccuracy(obj,type)
+    function setAccuracy(obj,value)
         command = ':SENS1:APER';
-        validValues = {1,2,3,4,5};
-        obj.setTextParameter(command,validValues,type);
+        min = 1;
+        max = 5;
+        inc = 1;
+        obj.setNumParameter(command,value,min,max,inc);
     end
     %----------- Averaging Functions -----------%
     function setAveraging(obj,type)
@@ -270,7 +272,7 @@ methods
         obj.setTextParameter(command,validValues,type);
     end
     function triggerSweep(obj)
-        fprintf(obj.visaObj,'*TRG');
+        fprintf(obj.visaObj,':TRIG:SING');
     end
     function abortSweep(obj)
         fprintf(obj.visaObj,':ABOR');
@@ -302,7 +304,10 @@ methods
         fprintf('%s was not found as a Trace Parameter on Channel %d',type,chan);
     end
     function [real,imag,freq]= getRXF(obj,varargin)
-        switch lenght(varargin)
+%            real = obj.getData('R',varargin{length(varargin)==1});
+%            imag = obj.getData('X',varargin{length(varargin)==1});
+%            freq = obj.getF();%Change getF to accomadate for each channel
+        switch length(varargin)
             case 0
                 real = obj.getData('R',1);
                 imag = obj.getData('X',1);
@@ -314,7 +319,7 @@ methods
         end
     end
     function [z,theta,freq] = getZTF(obj,varargin)
-        switch lenght(varargin)
+        switch length(varargin)
             case 0
                 z = obj.getData('Z',1);
                 theta = obj.getData('TZ',1);
@@ -325,6 +330,22 @@ methods
                 freq = obj.getF();%Change getF to accomadate for each channel
         end
     end
+    function [real,imag,freq]=triggerRXF(obj,varargin)
+        obj.triggerSweep();
+        obj.waitForComplete();
+        [real,imag,freq]=obj.getRXF(varargin{:});
+        obj.sound();
+    
+    end
+    function [z,theta,freq]=triggerZTF(obj,varargin)
+        obj.triggerSweep();
+        obj.waitForComplete();
+        [z,theta,freq]=obj.getZTF(varargin{:});
+        obj.sound();
+    
+    end
+    
+    
     
     function data = getR(obj,varargin)
         switch lenght(varargin)
@@ -377,7 +398,7 @@ methods
     end
     
     function data = getF(obj,varargin)
-        switch lenght(varargin)
+        switch length(varargin)
             case 0
                 fStr =  query(obj.visaObj,':SENS1:FREQ:DATA?');
             case 1
